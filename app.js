@@ -162,6 +162,21 @@
     return out.join("");
   }
 
+  // Banner con la fecha límite de las jornadas publicadas (la API la sirve en fechasLimite).
+  const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  function bannerFecha(jornada) {
+    const f = DATA.fechasLimite && DATA.fechasLimite[jornada];
+    const m = f && /^(\d{4})-(\d{2})-(\d{2})$/.exec(f);
+    if (!m) return "";
+    const fecha = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const pasada = new Date(+m[1], +m[2] - 1, +m[3]) < hoy;
+    return '<div class="banner' + (pasada ? " banner-old" : "") + '"><div class="b-tit">&#9203; Fecha límite: ' +
+      DIAS[fecha.getUTCDay()] + " " + (+m[3]) + " de " + MESES[+m[2] - 1] + " de " + m[1] + (pasada ? " (vencida)" : "") + "</div>" +
+      "<div>Los mánagers deben ponerse en contacto para jugar al menos 24 h antes del fin de la jornada.</div></div>";
+  }
+
   function vistaPartidos(divId, jornadaParam) {
     const div = divisionPorId(divId);
     const nums = Array.from(new Set(div.partidos.map(function (p) { return p.jornada; }))).sort(function (a, b) { return a - b; });
@@ -177,6 +192,7 @@
         return '<option value="' + n + '"' + (n === jornada ? " selected" : "") + ">Jornada " + n + "</option>";
       }).join("") + "</select>" +
       '<button class="nav" ' + (i === nums.length - 1 ? "disabled" : 'data-go="' + base + nums[i + 1] + '"') + ' aria-label="Siguiente">&#8250;</button></div>';
+    h += bannerFecha(jornada);
     const lista = div.partidos.filter(function (p) { return p.jornada === jornada; });
     h += '<div class="card">' + lista.map(function (p) {
       const loc = nombreEquipo(div, p.localClave, p.local), vis = nombreEquipo(div, p.visitanteClave, p.visitante);

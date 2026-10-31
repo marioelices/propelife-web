@@ -130,3 +130,6 @@ tbody tr:hover td.sticky{background:var(--card2)}
   .card table .crest{width:24px;height:24px;font-size:9px}
   .match{grid-template-columns:1fr auto 1fr;padding:12px}
 }
+.banner{margin:12px 0;padding:11px 14px;border-radius:10px;background:rgba(240,180,41,.12);border:1px solid rgba(240,180,41,.45);font-size:14px;line-height:1.4}
+.banner .b-tit{font-weight:700;margin-bottom:3px}
+.banner-old{background:rgba(150,150,150,.1);border-color:rgba(150,150,150,.35);color:var(--mut)}
