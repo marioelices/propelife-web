@@ -173,7 +173,7 @@
     const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
     const pasada = new Date(+m[1], +m[2] - 1, +m[3]) < hoy;
     return '<div class="banner' + (pasada ? " banner-old" : "") + '"><div class="b-tit">&#9203; Fecha límite: ' +
-      DIAS[fecha.getUTCDay()] + " " + (+m[3]) + " de " + MESES[+m[2] - 1] + " de " + m[1] + (pasada ? " (vencida)" : "") + "</div>" +
+      DIAS[fecha.getUTCDay()] + " " + (+m[3]) + " de " + MESES[+m[2] - 1] + " de " + m[1] + ", 23:59" + (pasada ? " (vencida)" : "") + "</div>" +
       "<div>Los mánagers deben ponerse en contacto para jugar al menos 24 h antes del fin de la jornada.</div></div>";
   }
 
