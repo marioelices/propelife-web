@@ -19,14 +19,48 @@
     for (let i = 0; i < clave.length; i++) h = (h * 31 + clave.charCodeAt(i)) % 360;
     return h;
   }
-  function iniciales(nombre) {
-    const p = String(nombre).trim().split(/\s+/);
-    return (p.length > 1 ? p[0][0] + p[1][0] : p[0].slice(0, 2)).toUpperCase();
+  // Siglas de 3 letras, unicas en toda la liga. Los equipos "X B" usan 2 letras de X + B.
+  let SIGLAS = null;
+  function sinAcentos(t) {
+    return String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  }
+  function construirSiglas() {
+    SIGLAS = {};
+    const usadas = {};
+    const equipos = [];
+    DATA.divisiones.forEach(function (d) {
+      d.clasificacion.forEach(function (e) { equipos.push(e); });
+    });
+    equipos.forEach(function (e) {
+      if (SIGLAS[e.clave]) return;
+      const limpio = sinAcentos(e.equipo).replace(/[^A-Z0-9 ]/g, " ").trim().split(/\s+/);
+      const esB = limpio.length > 1 && limpio[limpio.length - 1] === "B";
+      const base = (esB ? limpio.slice(0, -1) : limpio).join("");
+      const candidatos = [];
+      if (esB) {
+        candidatos.push(base.slice(0, 2) + "B");
+      } else {
+        candidatos.push(base.slice(0, 3));
+        if (limpio.length > 1) candidatos.push(limpio[0].slice(0, 2) + limpio[1][0]);
+      }
+      for (let i = 2; i < base.length; i++) candidatos.push(base[0] + base[1] + base[i]);
+      let sigla = candidatos.find(function (c) { return c.length === 3 && !usadas[c]; });
+      for (let n = 1; !sigla; n++) {
+        const c = base.slice(0, 2) + n;
+        if (!usadas[c]) sigla = c;
+      }
+      usadas[sigla] = true;
+      SIGLAS[e.clave] = sigla;
+    });
+  }
+  function iniciales(nombre, clave) {
+    if (!SIGLAS) construirSiglas();
+    return SIGLAS[clave] || sinAcentos(nombre).replace(/[^A-Z0-9]/g, "").slice(0, 3);
   }
   function crest(nombre, clave, big) {
     const h = hue(clave);
     return '<span class="crest' + (big ? " big" : "") + '" style="background:linear-gradient(135deg,hsl(' + h +
-      ' 65% 48%),hsl(' + ((h + 40) % 360) + ' 70% 32%))">' + esc(iniciales(nombre)) + "</span>";
+      ' 65% 48%),hsl(' + ((h + 40) % 360) + ' 70% 32%))">' + esc(iniciales(nombre, clave)) + "</span>";
   }
   function divisionPorId(id) {
     return DATA.divisiones.find(function (d) { return d.id === id; }) || DATA.divisiones[0];
@@ -89,14 +123,14 @@
       '<p class="sub">' + esc(div.nombre) + " división</p>" + selectorDivision(div.id, "clasificacion");
     if (!div.clasificacion.length) return h + '<p class="empty">Sin datos de clasificación.</p>';
     h += '<div class="card scroll"><table><thead><tr><th>#</th><th class="l sticky">Equipo</th><th>PJ</th>' +
-      '<th class="hide-s">PG</th><th class="hide-s">PE</th><th class="hide-s">PP</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th></tr></thead><tbody>';
+      '<th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th></tr></thead><tbody>';
     div.clasificacion.forEach(function (e) {
       const dg = e.dif == null ? 0 : e.dif;
       h += '<tr class="' + (ZONAS[e.zona] ? ZONAS[e.zona].clase : "") + '"><td class="pos">' + e.pos + '</td>' +
         '<td class="l sticky"><a class="team-cell" href="#/plantillas/' + div.id + "/" + e.clave + '">' + crest(e.equipo, e.clave) +
         "<span>" + esc(e.equipo) + "</span></a></td>" +
-        "<td>" + (e.pj == null ? "-" : e.pj) + '</td><td class="hide-s">' + (e.pg == null ? "-" : e.pg) +
-        '</td><td class="hide-s">' + (e.pe == null ? "-" : e.pe) + '</td><td class="hide-s">' + (e.pp == null ? "-" : e.pp) +
+        "<td>" + (e.pj == null ? "-" : e.pj) + '</td><td>' + (e.pg == null ? "-" : e.pg) +
+        '</td><td>' + (e.pe == null ? "-" : e.pe) + '</td><td>' + (e.pp == null ? "-" : e.pp) +
         "</td><td>" + (e.gf == null ? "-" : e.gf) + "</td><td>" + (e.gc == null ? "-" : e.gc) +
         '</td><td class="dif ' + (dg > 0 ? "p" : dg < 0 ? "n" : "") + '">' + (dg > 0 ? "+" : "") + dg +
         '</td><td class="pts">' + (e.pts == null ? 0 : e.pts) + "</td></tr>";

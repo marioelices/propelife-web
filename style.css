@@ -59,9 +59,9 @@ td.sticky,th.sticky{position:sticky;left:0;background:var(--card);z-index:1}
 th.sticky{background:var(--bg2)}
 tbody tr:hover td.sticky{background:var(--card2)}
 
-.crest{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;flex:none;
+.crest{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:10px;letter-spacing:-.3px;font-weight:800;color:#fff;flex:none;
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
-.crest.big{width:56px;height:56px;font-size:19px}
+.crest.big{width:56px;height:56px;font-size:17px;letter-spacing:0}
 
 .jornada-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px}
 .jornada-bar .nav{width:38px;height:38px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--txt);font-size:18px;cursor:pointer}
@@ -123,7 +123,10 @@ tbody tr:hover td.sticky{background:var(--card2)}
 
 @media (max-width:560px){
   h1{font-size:22px}
-  th,td{padding:10px 7px}
+  th,td{padding:9px 4px}
+  table{font-size:12.5px}
+  .card table .team-cell{gap:6px}
+  .card table .team-cell>span:last-child{max-width:92px;overflow:hidden;text-overflow:ellipsis}
+  .card table .crest{width:24px;height:24px;font-size:9px}
   .match{grid-template-columns:1fr auto 1fr;padding:12px}
-  .hide-s{display:none}
 }
