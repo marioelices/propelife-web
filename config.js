@@ -3,5 +3,5 @@
 window.LIGA_CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycbwTQF5Q-cGJMJqBuT-WFSsOeY-P_7u_P6U5EgIBUkwaWcPgjszxQ3jmI-1R17XcepGGDQ/exec",
   // Usuario del bot de Telegram (sin @). Vacío = sin botón de captura.
-  BOT_USERNAME: ""
+  BOT_USERNAME: "pujas_propel_bot"
 };
