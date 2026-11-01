@@ -203,3 +203,6 @@ tbody tr:hover td.sticky{background:var(--card2)}
 .beta{font-size:10px;font-weight:600;background:rgba(255,200,80,.18);color:#fc6;padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:6px}
 .mp-ocr p{margin:6px 0}
 .mp-ocr .nota{font-size:12px;color:var(--mut)}
+
+/* Sin escudos de 3 letras en Clasificación y lista de Partidos: más sitio para el nombre */
+.team-cell .crest,.mwrap .crest{display:none}
