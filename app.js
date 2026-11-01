@@ -260,9 +260,9 @@
       const loc = nombreEquipo(div, p.localClave, p.local), vis = nombreEquipo(div, p.visitanteClave, p.visitante);
       const ci = chipsIncidencias(incidenciasEquipo(div, p.localClave, jornada, p.jugado));
       const vi = chipsIncidencias(incidenciasEquipo(div, p.visitanteClave, jornada, p.jugado));
-      return '<div class="mwrap"><a class="mlink" href="' + enlacePartido(div, p) + '"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
+      return '<div class="mwrap' + (insigniaCaptura(p) ? ' hecho' : '') + '"><a class="mlink" href="' + enlacePartido(div, p) + '"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
         (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
-        '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div>" + insigniaCaptura(p) + "</div></a>" +
+        '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div>" + "</div></a>" +
         (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + "</div>";
     }).join("") + "</div>" +
       '<div class="legend"><span>&#128997; Expulsado</span><span>&#128721; Sancionado</span><span>&#129657; Lesionado</span></div>';
