@@ -184,7 +184,7 @@
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
     return h.toString(36);
   }
-  const MODO_CAPTURAS = /[?&]capturas=1/.test(location.search);
+  const MODO_CAPTURAS = /[?&]capturas=1/.test(location.search + location.hash);
   function idPartido(p) { return p.jornada + "_" + capHash(p.localClave + "|" + p.visitanteClave); }
   function capturasVisibles(p) {
     const todas = (DATA.capturas && DATA.capturas[idPartido(p)]) || [];
@@ -432,7 +432,7 @@
   // ---------- router ----------
   function render() {
     if (!DATA) return;
-    const partes = (location.hash.replace(/^#\/?/, "") || "clasificacion/1").split("/");
+    const partes = (location.hash.replace(/^#\/?/, "").replace(/\?.*$/, "") || "clasificacion/1").split("/");
     const tab = partes[0] || "clasificacion";
     const div = partes[1] || DATA.divisiones[0].id;
     tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === (tab === "partido" ? "partidos" : tab)); });
