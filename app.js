@@ -219,17 +219,23 @@
     if (!p) return '<a class="back" href="' + volver + '">&#8249; Partidos</a><p class="empty">No encuentro ese partido.</p>';
     const loc = nombreEquipo(div, p.localClave, p.local), vis = nombreEquipo(div, p.visitanteClave, p.visitante);
     const il = incidenciasEquipo(div, p.localClave, jornada, p.jugado), iv = incidenciasEquipo(div, p.visitanteClave, jornada, p.jugado);
-    const hayInc = il.exp.length + il.sanc.length + il.les.length + iv.exp.length + iv.sanc.length + iv.les.length > 0;
     let h = '<a class="back" href="' + volver + '">&#8249; Jornada ' + jornada + "</a>" +
       "<h1>" + esc(loc) + " vs " + esc(vis) + "</h1>" + '<p class="sub">' + esc(div.nombre) + " división · Jornada " + jornada + (p.jugado ? " · jugado" : " · pendiente") + "</p>" +
       '<div class="card"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
       (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
       '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div></div>";
     h += bannerFecha(jornada);
-    if (hayInc) {
-      h += '<h2 class="mp-h">Incidencias</h2><div class="card mp-inc"><div><b>' + esc(loc) + "</b><div class=\"chips\">" + (chipsIncidencias(il) || '<span class="empty">Ninguna</span>') + "</div></div>" +
-        "<div><b>" + esc(vis) + "</b><div class=\"chips\">" + (chipsIncidencias(iv) || '<span class="empty">Ninguna</span>') + "</div></div></div>";
+    function col(nombre, lista) {
+      return "<div><b>" + esc(nombre) + '</b><div class="chips">' + (lista || '<span class="empty">Ninguno</span>') + "</div></div>";
     }
+    function chips(arr, cls, ico, tit) {
+      return arr.map(function (n) { return '<span class="inc ' + cls + '" title="' + tit + '">' + ico + " " + esc(n) + "</span>"; }).join("");
+    }
+    h += '<h2 class="mp-h">&#129657; Lesionados</h2><div class="card mp-inc">' +
+      col(loc, chips(il.les, "i-les", "&#129657;", "Lesionado: no juega")) + col(vis, chips(iv.les, "i-les", "&#129657;", "Lesionado: no juega")) + "</div>";
+    h += '<h2 class="mp-h">&#128721; Sancionados</h2><div class="card mp-inc">' +
+      col(loc, chips(il.exp, "i-exp", "&#128997;", "Expulsado en este partido") + chips(il.sanc, "i-sanc", "&#128721;", "Sancionado: no juega")) +
+      col(vis, chips(iv.exp, "i-exp", "&#128997;", "Expulsado en este partido") + chips(iv.sanc, "i-sanc", "&#128721;", "Sancionado: no juega")) + "</div>";
     return h + galeriaCapturas(p, loc, vis);
   }
 
@@ -256,7 +262,7 @@
       const vi = chipsIncidencias(incidenciasEquipo(div, p.visitanteClave, jornada, p.jugado));
       return '<div class="mwrap"><a class="mlink" href="' + enlacePartido(div, p) + '"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
         (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
-        '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div></a>" +
+        '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div>" + insigniaCaptura(p) + "</div></a>" +
         (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + "</div>";
     }).join("") + "</div>" +
       '<div class="legend"><span>&#128997; Expulsado</span><span>&#128721; Sancionado</span><span>&#129657; Lesionado</span></div>';

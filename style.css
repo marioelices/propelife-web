@@ -196,3 +196,5 @@ tbody tr:hover td.sticky{background:var(--card2)}
 .gal-f{margin:0}
 .gal-f figcaption{font-size:13px;color:var(--mut);padding:6px 2px 0}
 .gal-f figcaption b{color:var(--txt)}
+.mlink .match{position:relative}
+.cap-n{top:50%;transform:translateY(-50%);right:6px;font-size:12px;background:rgba(255,255,255,.08);padding:2px 7px;border-radius:999px}
