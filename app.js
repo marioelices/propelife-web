@@ -202,7 +202,7 @@
     let h = '<h2 class="mp-h">Capturas</h2>';
     if (!vis.length) h += '<p class="empty">Todavía no hay capturas de este partido.</p>';
     else h += '<div class="gal">' + vis.map(function (c) {
-      const quien = c.s === "L" ? "Enviada por " + loc : c.s === "V" ? "Enviada por " + vis2 : "Equipo no identificado";
+      const quien = c.s === "L" ? "Enviada por " + loc : c.s === "V" ? "Enviada por " + vis2 : c.s === "A" ? "Enviada por el admin" : "Equipo no identificado";
       const cuando = c.t ? new Date(c.t).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
       return '<figure class="gal-f"><a class="gal-i" href="https://drive.google.com/file/d/' + esc(c.id) + '/view" target="_blank" rel="noopener">' +
         '<img loading="lazy" alt="Captura del partido" src="https://drive.google.com/thumbnail?id=' + esc(c.id) + '&sz=w1000">' + (c.p ? '<span class="cap-p">prueba</span>' : "") + "</a>" +
