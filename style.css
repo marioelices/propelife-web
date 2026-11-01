@@ -193,3 +193,6 @@ tbody tr:hover td.sticky{background:var(--card2)}
 .gal-i{position:relative;display:block;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
 .gal-i img{width:100%;display:block}
 .chips .empty{padding:0;text-align:left}
+.gal-f{margin:0}
+.gal-f figcaption{font-size:13px;color:var(--mut);padding:6px 2px 0}
+.gal-f figcaption b{color:var(--txt)}

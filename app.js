@@ -195,15 +195,18 @@
     const n = capturasVisibles(p).length;
     return n ? '<span class="cap-n" title="Capturas del partido">&#128247; ' + n + "</span>" : "";
   }
-  function galeriaCapturas(p) {
+  function galeriaCapturas(p, loc, vis2) {
     const vis = capturasVisibles(p);
     const bot = window.LIGA_CONFIG && window.LIGA_CONFIG.BOT_USERNAME;
     const boton = bot && MODO_CAPTURAS ? '<a class="cap-btn" href="https://t.me/' + esc(bot) + "?start=c" + idPartido(p) + '" target="_blank" rel="noopener">&#128247; Enviar captura por Telegram</a>' : "";
     let h = '<h2 class="mp-h">Capturas</h2>';
     if (!vis.length) h += '<p class="empty">Todavía no hay capturas de este partido.</p>';
     else h += '<div class="gal">' + vis.map(function (c) {
-      return '<a class="gal-i" href="https://drive.google.com/file/d/' + esc(c.id) + '/view" target="_blank" rel="noopener">' +
-        '<img loading="lazy" alt="Captura del partido" src="https://drive.google.com/thumbnail?id=' + esc(c.id) + '&sz=w1000">' + (c.p ? '<span class="cap-p">prueba</span>' : "") + "</a>";
+      const quien = c.s === "L" ? "Enviada por " + loc : c.s === "V" ? "Enviada por " + vis2 : "Equipo no identificado";
+      const cuando = c.t ? new Date(c.t).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+      return '<figure class="gal-f"><a class="gal-i" href="https://drive.google.com/file/d/' + esc(c.id) + '/view" target="_blank" rel="noopener">' +
+        '<img loading="lazy" alt="Captura del partido" src="https://drive.google.com/thumbnail?id=' + esc(c.id) + '&sz=w1000">' + (c.p ? '<span class="cap-p">prueba</span>' : "") + "</a>" +
+        '<figcaption><b>' + esc(quien) + "</b>" + (cuando ? " · " + esc(cuando) : "") + "</figcaption></figure>";
     }).join("") + "</div>";
     return h + (boton ? '<div class="caps">' + boton + "</div>" : "");
   }
@@ -227,7 +230,7 @@
       h += '<h2 class="mp-h">Incidencias</h2><div class="card mp-inc"><div><b>' + esc(loc) + "</b><div class=\"chips\">" + (chipsIncidencias(il) || '<span class="empty">Ninguna</span>') + "</div></div>" +
         "<div><b>" + esc(vis) + "</b><div class=\"chips\">" + (chipsIncidencias(iv) || '<span class="empty">Ninguna</span>') + "</div></div></div>";
     }
-    return h + galeriaCapturas(p);
+    return h + galeriaCapturas(p, loc, vis);
   }
 
   function vistaPartidos(divId, jornadaParam) {
