@@ -223,3 +223,6 @@ tbody tr:hover td.sticky{background:var(--card2)}
 .sub-t button{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:16px;line-height:1;cursor:pointer}
 
 .mp-ocr .warn{color:#fbbf24}
+
+button.cap-btn{background:none;cursor:pointer;font-family:inherit}
+.cap-btn{display:inline-block}
