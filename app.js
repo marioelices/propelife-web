@@ -185,17 +185,49 @@
     return h.toString(36);
   }
   const MODO_CAPTURAS = /[?&]capturas=1/.test(location.search);
-  function bloqueCapturas(p) {
-    const id = p.jornada + "_" + capHash(p.localClave + "|" + p.visitanteClave);
-    const todas = (DATA.capturas && DATA.capturas[id]) || [];
-    const vis = todas.filter(function (c) { return MODO_CAPTURAS || !c.p; });
+  function idPartido(p) { return p.jornada + "_" + capHash(p.localClave + "|" + p.visitanteClave); }
+  function capturasVisibles(p) {
+    const todas = (DATA.capturas && DATA.capturas[idPartido(p)]) || [];
+    return todas.filter(function (c) { return MODO_CAPTURAS || !c.p; });
+  }
+  function enlacePartido(div, p) { return "#/partido/" + div.id + "/" + p.jornada + "/" + capHash(p.localClave + "|" + p.visitanteClave); }
+  function insigniaCaptura(p) {
+    const n = capturasVisibles(p).length;
+    return n ? '<span class="cap-n" title="Capturas del partido">&#128247; ' + n + "</span>" : "";
+  }
+  function galeriaCapturas(p) {
+    const vis = capturasVisibles(p);
     const bot = window.LIGA_CONFIG && window.LIGA_CONFIG.BOT_USERNAME;
-    const boton = bot && MODO_CAPTURAS ? '<a class="cap-btn" href="https://t.me/' + esc(bot) + "?start=c" + id + '" target="_blank" rel="noopener" title="Enviar captura por Telegram">&#128247; Enviar captura</a>' : "";
-    if (!vis.length && !boton) return "";
-    return '<div class="caps">' + vis.map(function (c) {
-      return '<a class="cap" href="https://drive.google.com/file/d/' + esc(c.id) + '/view" target="_blank" rel="noopener">' +
-        '<img loading="lazy" alt="Captura del partido" src="https://drive.google.com/thumbnail?id=' + esc(c.id) + '&sz=w400">' + (c.p ? '<span class="cap-p">prueba</span>' : "") + "</a>";
-    }).join("") + boton + "</div>";
+    const boton = bot && MODO_CAPTURAS ? '<a class="cap-btn" href="https://t.me/' + esc(bot) + "?start=c" + idPartido(p) + '" target="_blank" rel="noopener">&#128247; Enviar captura por Telegram</a>' : "";
+    let h = '<h2 class="mp-h">Capturas</h2>';
+    if (!vis.length) h += '<p class="empty">Todavía no hay capturas de este partido.</p>';
+    else h += '<div class="gal">' + vis.map(function (c) {
+      return '<a class="gal-i" href="https://drive.google.com/file/d/' + esc(c.id) + '/view" target="_blank" rel="noopener">' +
+        '<img loading="lazy" alt="Captura del partido" src="https://drive.google.com/thumbnail?id=' + esc(c.id) + '&sz=w1000">' + (c.p ? '<span class="cap-p">prueba</span>' : "") + "</a>";
+    }).join("") + "</div>";
+    return h + (boton ? '<div class="caps">' + boton + "</div>" : "");
+  }
+
+  function vistaPartido(divId, jornadaParam, hash) {
+    const div = divisionPorId(divId);
+    const jornada = Number(jornadaParam);
+    const p = div.partidos.find(function (x) { return x.jornada === jornada && capHash(x.localClave + "|" + x.visitanteClave) === hash; });
+    const volver = "#/partidos/" + div.id + "/" + jornada;
+    if (!p) return '<a class="back" href="' + volver + '">&#8249; Partidos</a><p class="empty">No encuentro ese partido.</p>';
+    const loc = nombreEquipo(div, p.localClave, p.local), vis = nombreEquipo(div, p.visitanteClave, p.visitante);
+    const il = incidenciasEquipo(div, p.localClave, jornada, p.jugado), iv = incidenciasEquipo(div, p.visitanteClave, jornada, p.jugado);
+    const hayInc = il.exp.length + il.sanc.length + il.les.length + iv.exp.length + iv.sanc.length + iv.les.length > 0;
+    let h = '<a class="back" href="' + volver + '">&#8249; Jornada ' + jornada + "</a>" +
+      "<h1>" + esc(loc) + " vs " + esc(vis) + "</h1>" + '<p class="sub">' + esc(div.nombre) + " división · Jornada " + jornada + (p.jugado ? " · jugado" : " · pendiente") + "</p>" +
+      '<div class="card"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
+      (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
+      '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div></div>";
+    h += bannerFecha(jornada);
+    if (hayInc) {
+      h += '<h2 class="mp-h">Incidencias</h2><div class="card mp-inc"><div><b>' + esc(loc) + "</b><div class=\"chips\">" + (chipsIncidencias(il) || '<span class="empty">Ninguna</span>') + "</div></div>" +
+        "<div><b>" + esc(vis) + "</b><div class=\"chips\">" + (chipsIncidencias(iv) || '<span class="empty">Ninguna</span>') + "</div></div></div>";
+    }
+    return h + galeriaCapturas(p);
   }
 
   function vistaPartidos(divId, jornadaParam) {
@@ -219,10 +251,10 @@
       const loc = nombreEquipo(div, p.localClave, p.local), vis = nombreEquipo(div, p.visitanteClave, p.visitante);
       const ci = chipsIncidencias(incidenciasEquipo(div, p.localClave, jornada, p.jugado));
       const vi = chipsIncidencias(incidenciasEquipo(div, p.visitanteClave, jornada, p.jugado));
-      return '<div class="mwrap"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
+      return '<div class="mwrap"><a class="mlink" href="' + enlacePartido(div, p) + '"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
         (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
-        '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div>" +
-        (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + bloqueCapturas(p) + "</div>";
+        '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div></a>" +
+        (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + "</div>";
     }).join("") + "</div>" +
       '<div class="legend"><span>&#128997; Expulsado</span><span>&#128721; Sancionado</span><span>&#129657; Lesionado</span></div>';
     return h;
@@ -403,12 +435,13 @@
     const partes = (location.hash.replace(/^#\/?/, "") || "clasificacion/1").split("/");
     const tab = partes[0] || "clasificacion";
     const div = partes[1] || DATA.divisiones[0].id;
-    tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === tab); });
+    tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === (tab === "partido" ? "partidos" : tab)); });
     tabs.forEach(function (a) {
       if (a.dataset.tab !== "bajas" && a.dataset.tab !== "reglas" && a.dataset.tab !== "palmares") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
     });
     let html;
-    if (tab === "partidos") html = vistaPartidos(div, partes[2]);
+    if (tab === "partido") html = vistaPartido(div, partes[2], partes[3]);
+    else if (tab === "partidos") html = vistaPartidos(div, partes[2]);
     else if (tab === "plantillas") html = vistaPlantillas(div, partes[2]);
     else if (tab === "reglas") html = vistaReglas();
     else if (tab === "palmares") html = vistaPalmares();
