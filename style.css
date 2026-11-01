@@ -226,3 +226,9 @@ tbody tr:hover td.sticky{background:var(--card2)}
 
 button.cap-btn{background:none;cursor:pointer;font-family:inherit}
 .cap-btn{display:inline-block}
+
+.ocr-eq{margin:8px 0}.ocr-eq summary{cursor:pointer;font-size:14px}
+.inc.ok{color:#4ade80}.inc.no{color:var(--mut);opacity:.8}
+
+.ocr-t{width:100%;border-collapse:collapse;font-size:13px}.ocr-t th,.ocr-t td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}.ocr-t th{color:var(--mut);font-weight:600}
+.tw{overflow-x:auto}

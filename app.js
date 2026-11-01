@@ -312,6 +312,15 @@
     h += "<p>Marcador leído: <b>" + (o.m ? esc(o.m.replace("-", " - ")) : "no detectado") + "</b></p>";
     h += bajas ? "<p>Aparecen en la captura jugadores que constan como sancionados o lesionados:</p><div class=\"chips\">" + bajas + "</div>" :
       "<p>&#9989; No se ha detectado ningún lesionado ni sancionado en la captura.</p>";
+    if ((o.r || []).length) {
+      const filas = o.r.slice().sort(function (x, y) { return y[4] - x[4] || y[3] - x[3]; }).map(function (x) {
+        return "<tr><td>" + esc(x[0]) + "</td><td>" + (x[4] ? esc(x[1]) + " <small>(" + esc(x[2]) + ")</small>" : "&mdash;") + "</td><td>" + x[3] + " %</td><td>" + (x[4] ? "&#9989;" : "&#10060;") + "</td></tr>";
+      }).join("");
+      const n = o.r.filter(function (x) { return x[4]; }).length;
+      h += '<details class="ocr-eq" open><summary>Nombres leídos en la captura: ' + n + " de " + o.r.length + " emparejados con el Excel</summary>" +
+        '<div class="tw"><table class="ocr-t"><thead><tr><th>Leído</th><th>Jugador del Excel</th><th>Parecido</th><th>OK</th></tr></thead><tbody>' + filas + "</tbody></table></div>" +
+        '<p class="nota">Puede haber jugadores de la plantilla que no jugaron el partido, por eso no se listan los que no aparecen.</p></details>';
+    }
     if (o.c === "ok") h += "<p>&#9989; Las capturas de ambos equipos coinciden (mismo partido).</p>";
     else if (o.c === "dif") h += "<p class=\"warn\">&#9888;&#65039; Las capturas de los dos equipos no coinciden: " + esc(o.cm) + ".</p>";
     else if (o.c === "p") h += "<p>&#9203; Falta la captura de " + esc(o.f === "L" ? loc : vis2) + " para cotejar.</p>";
