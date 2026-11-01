@@ -211,6 +211,20 @@
     return h + (boton ? '<div class="caps">' + boton + "</div>" : "");
   }
 
+  function bloqueOcr(p, loc, vis2) {
+    const o = DATA.ocr && DATA.ocr[idPartido(p)];
+    if (!o) return "";
+    const bajas = (o.a || []).map(function (b) {
+      return '<span class="inc ' + (b[0] === "S" ? "i-sanc" : "i-les") + '">' + (b[0] === "S" ? "&#128721;" : "&#129657;") + " " + esc(b[1]) + " <small>(" + esc(b[2]) + ")</small></span>";
+    }).join("");
+    let h = '<h2 class="mp-h">&#128270; Lectura de las capturas <span class="beta">en pruebas</span></h2><div class="card mp-ocr">';
+    h += "<p>Marcador leído: <b>" + (o.m ? esc(o.m.replace("-", " - ")) : "no detectado") + "</b></p>";
+    h += bajas ? "<p>Aparecen en la captura jugadores que constan como sancionados o lesionados:</p><div class=\"chips\">" + bajas + "</div>" :
+      "<p>&#9989; No se ha detectado ningún lesionado ni sancionado en la captura.</p>";
+    h += '<p class="nota">Lectura automática con OCR: puede fallar. No modifica la clasificación ni el Excel.</p></div>';
+    return h;
+  }
+
   function vistaPartido(divId, jornadaParam, hash) {
     const div = divisionPorId(divId);
     const jornada = Number(jornadaParam);
@@ -236,7 +250,7 @@
     h += '<h2 class="mp-h">&#128721; Sancionados</h2><div class="card mp-inc">' +
       col(loc, chips(il.exp, "i-exp", "&#128997;", "Expulsado en este partido") + chips(il.sanc, "i-sanc", "&#128721;", "Sancionado: no juega")) +
       col(vis, chips(iv.exp, "i-exp", "&#128997;", "Expulsado en este partido") + chips(iv.sanc, "i-sanc", "&#128721;", "Sancionado: no juega")) + "</div>";
-    return h + galeriaCapturas(p, loc, vis);
+    return h + bloqueOcr(p, loc, vis) + galeriaCapturas(p, loc, vis);
   }
 
   function vistaPartidos(divId, jornadaParam) {
