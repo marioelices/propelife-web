@@ -219,47 +219,69 @@
     ov.className = "sub-ov";
     ov.innerHTML = '<div class="sub-box"><h3>Subir captura del partido</h3>' +
       '<label class="sub-l">PIN de tu equipo<input type="password" class="sub-pin" autocomplete="off" autocapitalize="characters" maxlength="6" value="' + esc(guardado) + '"></label>' +
+      '<p class="sub-l">Puedes enviar hasta 2 imágenes a la vez (si los jugadores no caben en una sola pantalla).</p>' +
       '<div class="sub-btns"><label class="cap-btn">&#128247; Hacer foto<input type="file" accept="image/*" capture="environment" hidden class="sub-cam"></label>' +
-      '<label class="cap-btn">&#128193; Elegir imagen<input type="file" accept="image/*" hidden class="sub-gal"></label></div>' +
-      '<img class="sub-prev" alt="" hidden><p class="sub-msg"></p>' +
+      '<label class="cap-btn">&#128193; Elegir imagen<input type="file" accept="image/*" multiple hidden class="sub-gal"></label></div>' +
+      '<div class="sub-thumbs"></div><p class="sub-msg"></p>' +
       '<div class="sub-btns"><button type="button" class="cap-btn sub-send" disabled>Enviar</button><button type="button" class="cap-btn sub-close">Cerrar</button></div></div>';
     document.body.appendChild(ov);
     const q = function (s) { return ov.querySelector(s); };
-    let blob = null;
+    const fotos = [];   // blobs reducidos (máx. 2)
     const msg = function (t, err) { const m = q(".sub-msg"); m.textContent = t; m.className = "sub-msg" + (err ? " err" : ""); };
+    function pintar() {
+      q(".sub-thumbs").innerHTML = fotos.map(function (f, i) {
+        return '<span class="sub-t"><img alt="" src="' + f.url + '"><button type="button" data-q="' + i + '" aria-label="Quitar">&times;</button></span>';
+      }).join("");
+      q(".sub-send").disabled = !fotos.length;
+    }
     function elegir(ev) {
-      const f = ev.target.files && ev.target.files[0];
-      if (!f) return;
+      const lista = Array.prototype.slice.call(ev.target.files || [], 0, 2 - fotos.length);
+      ev.target.value = "";
+      if (!lista.length) { if (fotos.length >= 2) msg("Ya tienes 2 imágenes. Quita una para cambiarla.", true); return; }
       msg("Preparando la imagen…");
-      reducir(f).then(function (b) {
-        blob = b;
-        const im = q(".sub-prev"); im.src = URL.createObjectURL(b); im.hidden = false;
-        q(".sub-send").disabled = false; msg("Imagen lista (" + Math.round(b.size / 1024) + " KB).");
+      Promise.all(lista.map(reducir)).then(function (bs) {
+        bs.forEach(function (b) { b.url = URL.createObjectURL(b); fotos.push(b); });
+        pintar(); msg(fotos.length + (fotos.length === 1 ? " imagen lista." : " imágenes listas.") + (fotos.length < 2 ? " Si hace falta una segunda pantalla, añádela." : ""));
       }).catch(function () { msg("No he podido leer esa imagen.", true); });
     }
     q(".sub-cam").addEventListener("change", elegir);
     q(".sub-gal").addEventListener("change", elegir);
+    q(".sub-thumbs").addEventListener("click", function (ev) {
+      const b = ev.target.closest("[data-q]"); if (!b) return;
+      fotos.splice(Number(b.getAttribute("data-q")), 1); pintar(); msg(fotos.length ? "" : "Elige o haz una foto.");
+    });
     q(".sub-close").addEventListener("click", function () { ov.remove(); });
+    function enviarUna(pin, blob) {
+      return new Promise(function (ok, ko) {
+        const fr = new FileReader();
+        fr.onerror = ko;
+        fr.onload = function () {
+          fetch(window.LIGA_CONFIG.API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ a: "subir", pin: pin, id: id, img: String(fr.result).split(",")[1] }) })
+            .then(function (r) { return r.json(); }).then(ok, ko);
+        };
+        fr.readAsDataURL(blob);
+      });
+    }
     q(".sub-send").addEventListener("click", function () {
       const pin = q(".sub-pin").value.trim().toUpperCase();
       if (!pin) { msg("Escribe el PIN de tu equipo.", true); return; }
-      if (!blob) return;
-      q(".sub-send").disabled = true; msg("Enviando…");
-      const fr = new FileReader();
-      fr.onload = function () {
-        fetch(window.LIGA_CONFIG.API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ a: "subir", pin: pin, id: id, img: String(fr.result).split(",")[1] }) })
-          .then(function (r) { return r.json(); })
-          .then(function (r) {
-            if (r.ok) {
-              try { localStorage.setItem("liga_pin", pin); } catch (e) {}
-              msg("✅ Captura subida (" + r.n + " de " + r.max + "). Si los jugadores no caben en una pantalla, sube también la segunda. Aparecerá en la ficha en un minuto.");
-              blob = null; q(".sub-prev").hidden = true;
-            } else { msg("❌ " + (r.error || "No se ha podido subir."), true); q(".sub-send").disabled = false; }
-          })
-          .catch(function () { msg("❌ No he podido conectar. Revisa la cobertura e inténtalo otra vez.", true); q(".sub-send").disabled = false; });
-      };
-      fr.readAsDataURL(blob);
+      if (!fotos.length) return;
+      q(".sub-send").disabled = true;
+      const total = fotos.length;
+      let hechas = 0, ultimo = null;
+      (function siguiente() {
+        if (!fotos.length) {
+          try { localStorage.setItem("liga_pin", pin); } catch (e) {}
+          msg("✅ " + (hechas === 1 ? "Captura subida" : hechas + " capturas subidas") + " (" + ultimo.n + " de " + ultimo.max + " en este partido). Aparecerán en la ficha en un minuto.");
+          pintar(); return;
+        }
+        msg("Enviando " + (hechas + 1) + " de " + total + "…");
+        enviarUna(pin, fotos[0]).then(function (r) {
+          if (!r.ok) { msg((hechas ? "✅ " + hechas + " subida(s). " : "") + "❌ " + (r.error || "No se ha podido subir."), true); pintar(); return; }
+          ultimo = r; hechas++; fotos.shift(); pintar(); q(".sub-send").disabled = true; siguiente();
+        }).catch(function () { msg("❌ No he podido conectar. Revisa la cobertura e inténtalo otra vez.", true); pintar(); });
+      })();
     });
   }
   function reducir(file) {
