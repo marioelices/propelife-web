@@ -177,6 +177,27 @@
       "<div>Los mánagers deben ponerse en contacto para jugar al menos 24 h antes del fin de la jornada.</div></div>";
   }
 
+  // ---------- capturas de partido ----------
+  // Id estable del partido: igual que Cap_hash_ del bot (FNV-1a de "localClave|visitanteClave").
+  function capHash(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h.toString(36);
+  }
+  const MODO_CAPTURAS = /[?&]capturas=1/.test(location.search);
+  function bloqueCapturas(p) {
+    const id = p.jornada + "_" + capHash(p.localClave + "|" + p.visitanteClave);
+    const todas = (DATA.capturas && DATA.capturas[id]) || [];
+    const vis = todas.filter(function (c) { return MODO_CAPTURAS || !c.p; });
+    const bot = window.LIGA_CONFIG && window.LIGA_CONFIG.BOT_USERNAME;
+    const boton = bot && MODO_CAPTURAS ? '<a class="cap-btn" href="https://t.me/' + esc(bot) + "?start=c" + id + '" target="_blank" rel="noopener" title="Enviar captura por Telegram">&#128247; Enviar captura</a>' : "";
+    if (!vis.length && !boton) return "";
+    return '<div class="caps">' + vis.map(function (c) {
+      return '<a class="cap" href="https://drive.google.com/file/d/' + esc(c.id) + '/view" target="_blank" rel="noopener">' +
+        '<img loading="lazy" alt="Captura del partido" src="https://drive.google.com/thumbnail?id=' + esc(c.id) + '&sz=w400">' + (c.p ? '<span class="cap-p">prueba</span>' : "") + "</a>";
+    }).join("") + boton + "</div>";
+  }
+
   function vistaPartidos(divId, jornadaParam) {
     const div = divisionPorId(divId);
     const nums = Array.from(new Set(div.partidos.map(function (p) { return p.jornada; }))).sort(function (a, b) { return a - b; });
@@ -201,7 +222,7 @@
       return '<div class="mwrap"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
         (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
         '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div>" +
-        (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + "</div>";
+        (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + bloqueCapturas(p) + "</div>";
     }).join("") + "</div>" +
       '<div class="legend"><span>&#128997; Expulsado</span><span>&#128721; Sancionado</span><span>&#129657; Lesionado</span></div>';
     return h;
