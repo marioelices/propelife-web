@@ -198,7 +198,7 @@
   function galeriaCapturas(p, loc, vis2) {
     const vis = capturasVisibles(p);
     const bot = window.LIGA_CONFIG && window.LIGA_CONFIG.BOT_USERNAME;
-    const boton = bot && MODO_CAPTURAS ? '<a class="cap-btn" href="https://t.me/' + esc(bot) + "?start=c" + idPartido(p) + '" target="_blank" rel="noopener">&#128247; Enviar captura por Telegram</a>' : "";
+    const boton = bot ? '<a class="cap-btn" href="https://t.me/' + esc(bot) + "?start=c" + idPartido(p) + '" target="_blank" rel="noopener">&#128247; Enviar captura por Telegram</a>' : "";
     let h = '<h2 class="mp-h">Capturas</h2>';
     if (!vis.length) h += '<p class="empty">Todavía no hay capturas de este partido.</p>';
     else h += '<div class="gal">' + vis.map(function (c) {
