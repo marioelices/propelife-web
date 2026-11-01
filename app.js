@@ -312,6 +312,10 @@
     h += "<p>Marcador leído: <b>" + (o.m ? esc(o.m.replace("-", " - ")) : "no detectado") + "</b></p>";
     h += bajas ? "<p>Aparecen en la captura jugadores que constan como sancionados o lesionados:</p><div class=\"chips\">" + bajas + "</div>" :
       "<p>&#9989; No se ha detectado ningún lesionado ni sancionado en la captura.</p>";
+    if (o.c === "ok") h += "<p>&#9989; Las capturas de ambos equipos coinciden (mismo partido).</p>";
+    else if (o.c === "dif") h += "<p class=\"warn\">&#9888;&#65039; Las capturas de los dos equipos no coinciden: " + esc(o.cm) + ".</p>";
+    else if (o.c === "p") h += "<p>&#9203; Falta la captura de " + esc(o.f === "L" ? loc : vis2) + " para cotejar.</p>";
+    else if (o.c === "?") h += "<p>No hay datos suficientes para cotejar las capturas.</p>";
     h += '<p class="nota">Lectura automática con OCR: puede fallar. No modifica la clasificación ni el Excel.</p></div>';
     return h;
   }
