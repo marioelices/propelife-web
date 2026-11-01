@@ -208,8 +208,77 @@
         '<img loading="lazy" alt="Captura del partido" src="https://drive.google.com/thumbnail?id=' + esc(c.id) + '&sz=w1000">' + (c.p ? '<span class="cap-p">prueba</span>' : "") + "</a>" +
         '<figcaption><b>' + esc(quien) + "</b>" + (cuando ? " · " + esc(cuando) : "") + "</figcaption></figure>";
     }).join("") + "</div>";
-    return h + (boton ? '<div class="caps">' + boton + "</div>" : "");
+    const subir = window.LIGA_CONFIG && window.LIGA_CONFIG.API_URL ? '<button type="button" class="cap-btn" data-subir="' + esc(idPartido(p)) + '">&#128247; Subir foto desde el móvil</button>' : "";
+    return h + (boton || subir ? '<div class="caps">' + subir + boton + "</div>" : "");
   }
+
+  // ---------- subida de captura desde la web (sin Telegram) ----------
+  function abrirSubida(id) {
+    const guardado = (function () { try { return localStorage.getItem("liga_pin") || ""; } catch (e) { return ""; } })();
+    const ov = document.createElement("div");
+    ov.className = "sub-ov";
+    ov.innerHTML = '<div class="sub-box"><h3>Subir captura del partido</h3>' +
+      '<label class="sub-l">PIN de tu equipo<input type="password" class="sub-pin" autocomplete="off" autocapitalize="characters" maxlength="6" value="' + esc(guardado) + '"></label>' +
+      '<div class="sub-btns"><label class="cap-btn">&#128247; Hacer foto<input type="file" accept="image/*" capture="environment" hidden class="sub-cam"></label>' +
+      '<label class="cap-btn">&#128193; Elegir imagen<input type="file" accept="image/*" hidden class="sub-gal"></label></div>' +
+      '<img class="sub-prev" alt="" hidden><p class="sub-msg"></p>' +
+      '<div class="sub-btns"><button type="button" class="cap-btn sub-send" disabled>Enviar</button><button type="button" class="cap-btn sub-close">Cerrar</button></div></div>';
+    document.body.appendChild(ov);
+    const q = function (s) { return ov.querySelector(s); };
+    let blob = null;
+    const msg = function (t, err) { const m = q(".sub-msg"); m.textContent = t; m.className = "sub-msg" + (err ? " err" : ""); };
+    function elegir(ev) {
+      const f = ev.target.files && ev.target.files[0];
+      if (!f) return;
+      msg("Preparando la imagen…");
+      reducir(f).then(function (b) {
+        blob = b;
+        const im = q(".sub-prev"); im.src = URL.createObjectURL(b); im.hidden = false;
+        q(".sub-send").disabled = false; msg("Imagen lista (" + Math.round(b.size / 1024) + " KB).");
+      }).catch(function () { msg("No he podido leer esa imagen.", true); });
+    }
+    q(".sub-cam").addEventListener("change", elegir);
+    q(".sub-gal").addEventListener("change", elegir);
+    q(".sub-close").addEventListener("click", function () { ov.remove(); });
+    q(".sub-send").addEventListener("click", function () {
+      const pin = q(".sub-pin").value.trim().toUpperCase();
+      if (!pin) { msg("Escribe el PIN de tu equipo.", true); return; }
+      if (!blob) return;
+      q(".sub-send").disabled = true; msg("Enviando…");
+      const fr = new FileReader();
+      fr.onload = function () {
+        fetch(window.LIGA_CONFIG.API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ a: "subir", pin: pin, id: id, img: String(fr.result).split(",")[1] }) })
+          .then(function (r) { return r.json(); })
+          .then(function (r) {
+            if (r.ok) {
+              try { localStorage.setItem("liga_pin", pin); } catch (e) {}
+              msg("✅ Captura subida (" + r.n + " de " + r.max + "). Si los jugadores no caben en una pantalla, sube también la segunda. Aparecerá en la ficha en un minuto.");
+              blob = null; q(".sub-prev").hidden = true;
+            } else { msg("❌ " + (r.error || "No se ha podido subir."), true); q(".sub-send").disabled = false; }
+          })
+          .catch(function () { msg("❌ No he podido conectar. Revisa la cobertura e inténtalo otra vez.", true); q(".sub-send").disabled = false; });
+      };
+      fr.readAsDataURL(blob);
+    });
+  }
+  function reducir(file) {
+    return new Promise(function (ok, ko) {
+      const url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        const k = Math.min(1, 1600 / Math.max(im.width, im.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        c.toBlob(function (b) { URL.revokeObjectURL(url); b ? ok(b) : ko(); }, "image/jpeg", 0.82);
+      };
+      im.onerror = ko; im.src = url;
+    });
+  }
+  document.addEventListener("click", function (ev) {
+    const b = ev.target.closest && ev.target.closest("[data-subir]");
+    if (b) abrirSubida(b.getAttribute("data-subir"));
+  });
 
   function bloqueOcr(p, loc, vis2) {
     const o = DATA.ocr && DATA.ocr[idPartido(p)];

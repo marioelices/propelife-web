@@ -206,3 +206,14 @@ tbody tr:hover td.sticky{background:var(--card2)}
 
 /* Sin escudos de 3 letras en Clasificación y lista de Partidos: más sitio para el nombre */
 .team-cell .crest,.mwrap .crest{display:none}
+
+.sub-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:50;display:grid;place-items:center;padding:14px}
+.sub-box{background:#12161c;border:1px solid var(--line);border-radius:14px;padding:16px;max-width:420px;width:100%;max-height:92vh;overflow:auto}
+.sub-box h3{margin:0 0 10px}
+.sub-l{display:block;font-size:13px;color:var(--mut)}
+.sub-pin{display:block;width:100%;margin-top:4px;padding:9px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:inherit;font-size:16px;text-transform:uppercase}
+.sub-btns{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.sub-btns .cap-btn{cursor:pointer;background:none;font:inherit;font-size:13px}
+.sub-prev{max-width:100%;max-height:36vh;border-radius:8px;display:block;margin:6px auto}
+.sub-msg{font-size:13px;margin:8px 0}.sub-msg.err{color:#f87171}
+.sub-send[disabled]{opacity:.4}
