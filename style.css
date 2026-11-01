@@ -161,3 +161,15 @@ tbody tr:hover td.sticky{background:var(--card2)}
 .rule.oculto,.rsec.oculto{display:none}
 .rtab th,.rtab td{padding:7px 6px;font-size:13px}
 .rtab .eur{white-space:normal}
+
+/* Palmarés */
+.pal-top{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.pal-top .fact{text-align:center}
+.pal-top .fact b{font-size:15px}
+.rtab td.num,.rtab th.num{text-align:center}
+.rtab tr.pod1 td{background:rgba(255,200,60,.10)}
+.rtab td.eq{font-weight:600}
+.rtab td.top{font-weight:700;color:var(--acc)}
+.rtab .cero{color:var(--mut)}
+.rtab.pal th,.rtab.pal td{padding:7px 3px;font-size:12.5px}
+.rtab.pal td.eq{white-space:nowrap}

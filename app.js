@@ -305,6 +305,29 @@
     });
   }
 
+  // ---------- palmares ----------
+  function vistaPalmares() {
+    const P = window.PALMARES;
+    if (!P) return '<p class="empty">Palmarés no disponible.</p>';
+    const ult = P.temporadas[P.temporadas.length - 1];
+    const n = function (x) { return x ? x : '<span class="cero">0</span>'; };
+    let h = "<h1>Palmarés</h1>" + '<p class="sub">Historial de campeones de la FIPA · ' + P.temporadas.length + " temporadas</p>";
+    h += '<p class="sub">Campeones de la última temporada (' + esc(ult.t) + ")</p>";
+    h += '<div class="pal-top">' + [["🏆", "1ª División", ult.d1], ["🥈", "2ª División", ult.d2], ["🏅", "Copa", ult.copa]].map(function (x) {
+      return '<div class="fact"><div class="fi">' + x[0] + "</div><span>" + x[1] + "</span><b>" + esc(x[2]) + "</b></div>";
+    }).join("") + "</div>";
+    h += '<details class="rsec" open><summary><span>📊</span><span>Ranking global</span></summary><div class="rbody"><div class="rtab-wrap"><table class="rtab pal"><thead><tr><th class="num">#</th><th>Equipo</th><th class="num">1ª<br>×3</th><th class="num">2ª<br>×1</th><th class="num">Copa<br>×2</th><th class="num">Coef</th><th class="num">Tít.</th></tr></thead><tbody>' +
+      P.ranking.map(function (r) {
+        const m = "";
+        return '<tr class="' + (r.pos === 1 ? "pod1" : "") + '"><td class="num">' + m + r.pos + '</td><td class="eq">' + esc(r.equipo) + '</td><td class="num">' + n(r.d1) + '</td><td class="num">' + n(r.d2) + '</td><td class="num">' + n(r.copa) + '</td><td class="num top">' + r.coef + '</td><td class="num">' + n(r.titulos) + "</td></tr>";
+      }).join("") + "</tbody></table></div></div></details>";
+    h += '<details class="rsec"><summary><span>📅</span><span>Temporadas</span></summary><div class="rbody"><div class="rtab-wrap"><table class="rtab"><thead><tr><th>Temp</th><th>1ª Div</th><th>2ª Div</th><th>Copa</th></tr></thead><tbody>' +
+      P.temporadas.slice().reverse().map(function (t) {
+        return "<tr><td>" + esc(t.t) + '</td><td class="eq">' + esc(t.d1) + "</td><td>" + esc(t.d2) + "</td><td>" + esc(t.copa) + "</td></tr>";
+      }).join("") + "</tbody></table></div></div></details>";
+    return h;
+  }
+
   // ---------- reglas ----------
   function resaltarImportes(t) {
     return esc(t).replace(/(\d+(?:,\d+)? millones)/g, '<span class="eur">$1</span>');
@@ -361,12 +384,13 @@
     const div = partes[1] || DATA.divisiones[0].id;
     tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === tab); });
     tabs.forEach(function (a) {
-      if (a.dataset.tab !== "bajas" && a.dataset.tab !== "reglas") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
+      if (a.dataset.tab !== "bajas" && a.dataset.tab !== "reglas" && a.dataset.tab !== "palmares") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
     });
     let html;
     if (tab === "partidos") html = vistaPartidos(div, partes[2]);
     else if (tab === "plantillas") html = vistaPlantillas(div, partes[2]);
     else if (tab === "reglas") html = vistaReglas();
+    else if (tab === "palmares") html = vistaPalmares();
     else if (tab === "bajas") html = vistaBajas(partes[1] !== "todas");
     else html = vistaClasificacion(div);
     app.innerHTML = html;
