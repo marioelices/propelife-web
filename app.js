@@ -305,6 +305,54 @@
     });
   }
 
+  // ---------- reglas ----------
+  function resaltarImportes(t) {
+    return esc(t).replace(/(\d+(?:,\d+)? millones)/g, '<span class="eur">$1</span>');
+  }
+  function vistaReglas() {
+    const R = window.REGLAS;
+    if (!R) return '<p class="empty">Reglas no disponibles.</p>';
+    let h = "<h1>Reglas</h1>" + '<p class="sub">Reglamento FIPA · en vigor a partir de la ' + esc(R.version) + "</p>";
+    h += '<div class="facts">' + R.resumen.map(function (f) {
+      return '<div class="fact"><div class="fi">' + f.i + "</div><b>" + esc(f.t) + "</b><span>" + esc(f.d) + "</span></div>";
+    }).join("") + "</div>";
+    h += '<input class="search" id="buscarReglas" type="search" placeholder="Buscar en las reglas…" autocomplete="off">';
+    h += R.secciones.map(function (sec) {
+      return '<details class="rsec" id="r-' + sec.id + '"><summary><span>' + sec.icono + '</span><span><span class="rn">' + sec.n + ".</span> " + esc(sec.titulo) + "</span></summary>" +
+        '<div class="rbody">' + sec.grupos.map(function (g) {
+          return (g.titulo ? '<div class="rgrp">' + esc(g.titulo) + "</div>" : "") + g.items.map(function (it) {
+            let b = "<div>" + resaltarImportes(it.t) + "</div>";
+            if (it.lista) b += "<ol>" + it.lista.map(function (x) { return "<li>" + resaltarImportes(x) + "</li>"; }).join("") + "</ol>";
+            if (it.tabla) {
+              b += '<div class="rtab-wrap"><table class="rtab"><thead><tr>' + it.tabla.cab.filter(function (c, i) { return it.tabla.filas.some(function (f) { return f[i]; }); }).map(function (c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>" +
+                it.tabla.filas.map(function (f) {
+                  return "<tr>" + f.filter(function (c, i) { return it.tabla.filas.some(function (x) { return x[i]; }); }).map(function (c) { return "<td>" + resaltarImportes(c) + "</td>"; }).join("") + "</tr>";
+                }).join("") + "</tbody></table></div>";
+            }
+            return '<div class="rule' + (it.aviso ? " aviso" : "") + '"><span class="rk">' + esc(it.k) + '</span><div class="rt">' + b + "</div></div>";
+          }).join("");
+        }).join("") + "</div></details>";
+    }).join("");
+    return h;
+  }
+  function activarBusquedaReglas() {
+    const input = document.getElementById("buscarReglas");
+    if (!input) return;
+    input.addEventListener("input", function () {
+      const q = norm(input.value).trim();
+      app.querySelectorAll(".rsec").forEach(function (sec) {
+        let hay = 0;
+        sec.querySelectorAll(".rule").forEach(function (r) {
+          const ok = q.length < 2 || norm(r.textContent).indexOf(q) !== -1;
+          r.classList.toggle("oculto", !ok);
+          if (ok) hay++;
+        });
+        sec.classList.toggle("oculto", q.length >= 2 && !hay);
+        if (q.length >= 2 && hay) sec.open = true;
+      });
+    });
+  }
+
   // ---------- router ----------
   function render() {
     if (!DATA) return;
@@ -313,11 +361,12 @@
     const div = partes[1] || DATA.divisiones[0].id;
     tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === tab); });
     tabs.forEach(function (a) {
-      if (a.dataset.tab !== "bajas") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
+      if (a.dataset.tab !== "bajas" && a.dataset.tab !== "reglas") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
     });
     let html;
     if (tab === "partidos") html = vistaPartidos(div, partes[2]);
     else if (tab === "plantillas") html = vistaPlantillas(div, partes[2]);
+    else if (tab === "reglas") html = vistaReglas();
     else if (tab === "bajas") html = vistaBajas(partes[1] !== "todas");
     else html = vistaClasificacion(div);
     app.innerHTML = html;
@@ -331,6 +380,7 @@
     const chk = document.getElementById("chkTodas");
     if (chk) chk.addEventListener("change", function () { location.hash = chk.checked ? "#/bajas/todas" : "#/bajas"; });
     activarBusqueda();
+    activarBusquedaReglas();
   }
 
   // ---------- datos ----------
