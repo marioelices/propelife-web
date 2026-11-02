@@ -213,7 +213,32 @@
   }
 
   // ---------- subida de captura desde la web (sin Telegram) ----------
+  function partidoPorId(id) {
+    for (let i = 0; i < DATA.divisiones.length; i++) {
+      const div = DATA.divisiones[i];
+      const p = div.partidos.find(function (x) { return idPartido(x) === id; });
+      if (p) {
+        const eqs = function (clave) { const e = div.equipos.find(function (z) { return z.clave === clave; }); return e ? e.jugadores.map(function (j) { return j.nombre; }) : []; };
+        return { loc: nombreEquipo(div, p.localClave, p.local), vis: nombreEquipo(div, p.visitanteClave, p.visitante), jl: eqs(p.localClave), jv: eqs(p.visitanteClave) };
+      }
+    }
+    return null;
+  }
+  function selectRoja(lado, jugadores) {
+    return '<select class="sub-roja" data-lado="' + lado + '"><option value="">— Ninguno —</option>' +
+      jugadores.map(function (n) { return '<option value="' + esc(n) + '">' + esc(n) + "</option>"; }).join("") + "</select>";
+  }
+  function bloqueRojasModal(info) {
+    if (!info || (!info.jl.length && !info.jv.length)) return "";
+    const eq = function (lado, nombre, jugs) {
+      return '<div class="sub-rj" data-lado="' + lado + '"><b>' + esc(nombre) + '</b><div class="sub-rj-l">' + selectRoja(lado, jugs) + '</div>' +
+        '<button type="button" class="sub-mas" data-lado="' + lado + '">+ añadir otro</button></div>';
+    };
+    return '<div class="sub-rojas"><p class="sub-l">&#128997; <b>Tarjetas rojas</b> (opcional). Indica quién ha sido expulsado en este partido.</p>' +
+      eq("L", info.loc, info.jl) + eq("V", info.vis, info.jv) + "</div>";
+  }
   function abrirSubida(id) {
+    const info = partidoPorId(id);
     const guardado = (function () { try { return localStorage.getItem("liga_pin") || ""; } catch (e) { return ""; } })();
     const ov = document.createElement("div");
     ov.className = "sub-ov";
@@ -222,18 +247,36 @@
       '<p class="sub-l">Puedes enviar hasta 2 imágenes a la vez (si los jugadores no caben en una sola pantalla).</p>' +
       '<div class="sub-btns"><label class="cap-btn">&#128247; Hacer foto<input type="file" accept="image/*" capture="environment" hidden class="sub-cam"></label>' +
       '<label class="cap-btn">&#128193; Elegir imagen<input type="file" accept="image/*" multiple hidden class="sub-gal"></label></div>' +
-      '<div class="sub-thumbs"></div><p class="sub-msg"></p>' +
+      '<div class="sub-thumbs"></div>' + bloqueRojasModal(info) + '<p class="sub-msg"></p>' +
       '<div class="sub-btns"><button type="button" class="cap-btn sub-send" disabled>Enviar</button><button type="button" class="cap-btn sub-close">Cerrar</button></div></div>';
     document.body.appendChild(ov);
     const q = function (s) { return ov.querySelector(s); };
     const fotos = [];   // blobs reducidos (máx. 2)
+    let rojasTocadas = false;
+    function leerRojas() {
+      const r = { L: [], V: [] };
+      Array.prototype.forEach.call(ov.querySelectorAll(".sub-roja"), function (sel) {
+        const lado = sel.getAttribute("data-lado");
+        if (sel.value && r[lado].indexOf(sel.value) === -1) r[lado].push(sel.value);
+      });
+      return r;
+    }
     const msg = function (t, err) { const m = q(".sub-msg"); m.textContent = t; m.className = "sub-msg" + (err ? " err" : ""); };
     function pintar() {
       q(".sub-thumbs").innerHTML = fotos.map(function (f, i) {
         return '<span class="sub-t"><img alt="" src="' + f.url + '"><button type="button" data-q="' + i + '" aria-label="Quitar">&times;</button></span>';
       }).join("");
-      q(".sub-send").disabled = !fotos.length;
+      q(".sub-send").disabled = !fotos.length && !rojasTocadas;
     }
+    ov.addEventListener("change", function (ev) {
+      if (ev.target.classList && ev.target.classList.contains("sub-roja")) { rojasTocadas = true; pintar(); }
+    });
+    ov.addEventListener("click", function (ev) {
+      const b = ev.target.closest && ev.target.closest(".sub-mas"); if (!b) return;
+      const lado = b.getAttribute("data-lado"), cont = ov.querySelector('.sub-rj[data-lado="' + lado + '"] .sub-rj-l');
+      if (cont.querySelectorAll(".sub-roja").length >= 4) return;
+      cont.insertAdjacentHTML("beforeend", selectRoja(lado, lado === "L" ? info.jl : info.jv));
+    });
     function elegir(ev) {
       const lista = Array.prototype.slice.call(ev.target.files || [], 0, 2 - fotos.length);
       ev.target.value = "";
@@ -263,18 +306,32 @@
         fr.readAsDataURL(blob);
       });
     }
+    function enviarRojas(pin) {
+      const r = leerRojas();
+      return fetch(window.LIGA_CONFIG.API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ a: "rojas", pin: pin, id: id, l: r.L, v: r.V }) }).then(function (x) { return x.json(); });
+    }
     q(".sub-send").addEventListener("click", function () {
       const pin = q(".sub-pin").value.trim().toUpperCase();
       if (!pin) { msg("Escribe el PIN de tu equipo.", true); return; }
-      if (!fotos.length) return;
+      if (!fotos.length && !rojasTocadas) return;
       q(".sub-send").disabled = true;
       const total = fotos.length;
       let hechas = 0, ultimo = null;
       (function siguiente() {
         if (!fotos.length) {
           try { localStorage.setItem("liga_pin", pin); } catch (e) {}
-          msg("✅ " + (hechas === 1 ? "Captura subida" : hechas + " capturas subidas") + " (" + ultimo.n + " de " + ultimo.max + " en este partido). Aparecerán en la ficha en un minuto.");
-          pintar(); return;
+          const fin = function (textoRojas) {
+            msg("✅ " + (hechas ? (hechas === 1 ? "Captura subida" : hechas + " capturas subidas") + " (" + ultimo.n + " de " + ultimo.max + " en este partido). " : "") + (textoRojas || "") + "Aparecerá en la ficha en un minuto.");
+            pintar();
+          };
+          if (!rojasTocadas) { fin(""); return; }
+          msg("Guardando las tarjetas rojas…");
+          enviarRojas(pin).then(function (r) {
+            if (!r.ok) { msg((hechas ? "✅ " + hechas + " subida(s). " : "") + "❌ " + (r.error || "No se han podido guardar las rojas."), true); pintar(); return; }
+            rojasTocadas = false; fin("Rojas guardadas. ");
+          }).catch(function () { msg("❌ No he podido conectar para guardar las rojas.", true); pintar(); });
+          return;
         }
         msg("Enviando " + (hechas + 1) + " de " + total + "…");
         enviarUna(pin, fotos[0]).then(function (r) {
@@ -301,6 +358,27 @@
     const b = ev.target.closest && ev.target.closest("[data-subir]");
     if (b) abrirSubida(b.getAttribute("data-subir"));
   });
+
+  // Rojas declaradas por los mánagers desde el modal: [{t, s: L|V|A, l: [jugadores local], v: [jugadores visitante]}]
+  function bloqueRojasDeclaradas(p, loc, vis) {
+    const lista = (DATA.rojas && DATA.rojas[idPartido(p)]) || [];
+    if (!lista.length) return "";
+    const quien = function (d) { return d.s === "L" ? loc : d.s === "V" ? vis : "el admin"; };
+    const clave = function (a) { return a.slice().sort().join("|"); };
+    const cuando = function (d) { return d.t ? new Date(d.t).toLocaleString("es-ES", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""; };
+    const chips = function (arr) { return arr.length ? arr.map(function (n) { return '<span class="inc i-exp">&#128997; ' + esc(n) + "</span>"; }).join("") : '<span class="empty">Ninguno</span>'; };
+    let h = '<h2 class="mp-h">&#128997; Rojas declaradas <span class="beta">por los mánagers</span></h2>';
+    const L = lista.filter(function (d) { return d.s === "L"; }), V = lista.filter(function (d) { return d.s === "V"; });
+    if (L.length && V.length) {
+      const a = L[L.length - 1], b = V[V.length - 1];
+      if (clave(a.l) !== clave(b.l) || clave(a.v) !== clave(b.v)) h += '<p class="mp-aviso">&#9888;&#65039; Los dos mánagers no coinciden en las rojas. Revisadlo con el admin.</p>';
+    }
+    h += lista.map(function (d) {
+      return '<div class="card mp-inc"><div class="mp-quien">Declarado por <b>' + esc(quien(d)) + "</b>" + (cuando(d) ? " · " + esc(cuando(d)) : "") + "</div>" +
+        "<div><b>" + esc(loc) + '</b><div class="chips">' + chips(d.l) + "</div></div><div><b>" + esc(vis) + '</b><div class="chips">' + chips(d.v) + "</div></div></div>";
+    }).join("");
+    return h + '<p class="empty">Son datos declarados por los mánagers: no modifican el Excel.</p>';
+  }
 
   function bloqueOcr(p, loc, vis2) {
     const o = DATA.ocr && DATA.ocr[idPartido(p)];
@@ -354,7 +432,7 @@
     h += '<h2 class="mp-h">&#128721; Sancionados</h2><div class="card mp-inc">' +
       col(loc, chips(il.exp, "i-exp", "&#128997;", "Expulsado en este partido") + chips(il.sanc, "i-sanc", "&#128721;", "Sancionado: no juega")) +
       col(vis, chips(iv.exp, "i-exp", "&#128997;", "Expulsado en este partido") + chips(iv.sanc, "i-sanc", "&#128721;", "Sancionado: no juega")) + "</div>";
-    return h + bloqueOcr(p, loc, vis) + galeriaCapturas(p, loc, vis);
+    return h + bloqueRojasDeclaradas(p, loc, vis) + bloqueOcr(p, loc, vis) + galeriaCapturas(p, loc, vis);
   }
 
   function vistaPartidos(divId, jornadaParam) {
