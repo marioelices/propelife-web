@@ -247,3 +247,5 @@ button.cap-btn{background:none;cursor:pointer;font-family:inherit}
 .cp-eq.gana{font-weight:800;color:var(--acc)}
 .cp-g{font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
 .cp-g small{color:var(--mut)}
+.cp-link{display:block;color:inherit;text-decoration:none}
+.cp-link:active{background:var(--card)}

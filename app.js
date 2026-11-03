@@ -213,7 +213,24 @@
   }
 
   // ---------- subida de captura desde la web (sin Telegram) ----------
+  function equipoPorClave(clave) {
+    for (let i = 0; i < DATA.divisiones.length; i++) {
+      const e = DATA.divisiones[i].equipos.find(function (z) { return z.clave === clave; });
+      if (e) return e;
+    }
+    return null;
+  }
+  function partidosCopa() {
+    const out = [];
+    ((DATA.copa && DATA.copa.rondas) || []).forEach(function (r) { r.partidos.forEach(function (p) { p.ronda = r.nombre; out.push(p); }); });
+    return out;
+  }
   function partidoPorId(id) {
+    const pc = partidosCopa().find(function (x) { return x.jornada && x.localClave && x.visitanteClave && idPartido(x) === id; });
+    if (pc) {
+      const el = equipoPorClave(pc.localClave), ev = equipoPorClave(pc.visitanteClave);
+      return { loc: pc.local, vis: pc.visitante, jl: el ? el.jugadores.map(function (j) { return j.nombre; }) : [], jv: ev ? ev.jugadores.map(function (j) { return j.nombre; }) : [] };
+    }
     for (let i = 0; i < DATA.divisiones.length; i++) {
       const div = DATA.divisiones[i];
       const p = div.partidos.find(function (x) { return idPartido(x) === id; });
@@ -405,6 +422,40 @@
     else if (o.c === "?") h += "<p>No hay datos suficientes para cotejar las capturas.</p>";
     h += '<p class="nota">Lectura automática con OCR: puede fallar. No modifica la clasificación ni el Excel.</p></div>';
     return h;
+  }
+
+  // Sancionados en copa: el jugador expulsado (según las rojas declaradas) en el partido anterior del equipo no juega el siguiente.
+  function sancionadosCopa(p, clave) {
+    const prev = partidosCopa().filter(function (x) {
+      return x.jornada < p.jornada && x.localClave && x.visitanteClave && (x.localClave === clave || x.visitanteClave === clave);
+    }).sort(function (a, b) { return b.jornada - a.jornada; })[0];
+    if (!prev) return [];
+    const lado = prev.localClave === clave ? "L" : "V";
+    const decl = (DATA.rojas && DATA.rojas[idPartido(prev)]) || [];
+    const propia = decl.filter(function (d) { return d.s === lado; }), admin = decl.filter(function (d) { return d.s === "A"; }), otra = decl.filter(function (d) { return d.s !== lado && d.s !== "A"; });
+    const d = (admin.length ? admin : propia.length ? propia : otra).slice(-1)[0];
+    return d ? (lado === "L" ? d.l : d.v) : [];
+  }
+  function vistaPartidoCopa(jornadaParam, hash) {
+    const jornada = Number(jornadaParam);
+    const p = partidosCopa().find(function (x) { return x.jornada === jornada && x.localClave && x.visitanteClave && capHash(x.localClave + "|" + x.visitanteClave) === hash; });
+    if (!p) return '<a class="back" href="#/copa">&#8249; Copa</a><p class="empty">No encuentro ese partido.</p>';
+    const loc = p.local, vis = p.visitante;
+    const jugado = p.gl !== null && p.gv !== null;
+    const pen = p.pl !== null && p.pv !== null ? ' <small>(' + p.pl + " - " + p.pv + " pen.)</small>" : "";
+    let h = '<a class="back" href="#/copa">&#8249; Copa</a><h1>' + esc(loc) + " vs " + esc(vis) + "</h1>" +
+      '<p class="sub">Copa Panagiotis · ' + esc(p.ronda) + (jugado ? " · jugado" : " · pendiente") + "</p>" +
+      '<div class="card"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
+      (jugado ? '<div class="score">' + p.gl + " - " + p.gv + pen + "</div>" : '<div class="score pend">vs</div>') +
+      '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div></div>";
+    const chips = function (arr) {
+      return arr.length ? arr.map(function (n) { return '<span class="inc i-sanc" title="Expulsado en su anterior partido de copa">&#128721; ' + esc(n) + "</span>"; }).join("") : '<span class="empty">Ninguno</span>';
+    };
+    h += '<h2 class="mp-h">&#128721; Sancionados <span class="beta">según las rojas declaradas</span></h2><div class="card mp-inc">' +
+      "<div><b>" + esc(loc) + '</b><div class="chips">' + chips(sancionadosCopa(p, p.localClave)) + "</div></div>" +
+      "<div><b>" + esc(vis) + '</b><div class="chips">' + chips(sancionadosCopa(p, p.visitanteClave)) + "</div></div></div>" +
+      '<p class="empty">En copa solo se sanciona la expulsión (1 partido). No hay lesionados.</p>';
+    return h + bloqueRojasDeclaradas(p, loc, vis) + bloqueOcr(p, loc, vis) + galeriaCapturas(p, loc, vis);
   }
 
   function vistaPartido(divId, jornadaParam, hash) {
@@ -640,12 +691,13 @@
     const partes = (location.hash.replace(/^#\/?/, "").replace(/\?.*$/, "") || "clasificacion/1").split("/");
     const tab = partes[0] || "clasificacion";
     const div = partes[1] || DATA.divisiones[0].id;
-    tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === (tab === "partido" ? "partidos" : tab)); });
+    tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === (tab === "partido" ? (div === "copa" ? "copa" : "partidos") : tab)); });
     tabs.forEach(function (a) {
       if (a.dataset.tab !== "bajas" && a.dataset.tab !== "reglas" && a.dataset.tab !== "palmares" && a.dataset.tab !== "copa") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
     });
     let html;
-    if (tab === "partido") html = vistaPartido(div, partes[2], partes[3]);
+    if (tab === "partido" && div === "copa" && DATA.copa) html = vistaPartidoCopa(partes[2], partes[3]);
+    else if (tab === "partido") html = vistaPartido(div, partes[2], partes[3]);
     else if (tab === "partidos") html = vistaPartidos(div, partes[2]);
     else if (tab === "plantillas") html = vistaPlantillas(div, partes[2]);
     else if (tab === "reglas") html = vistaReglas();
@@ -688,7 +740,10 @@
         const fila = function (nom, g, pen, w) {
           return '<div class="cp-eq' + (w ? " gana" : "") + '"><span class="cp-n">' + (nom ? esc(nom) : "—") + '</span><span class="cp-g">' + (g === null ? "" : g) + (pen !== null ? ' <small>(' + pen + ")</small>" : "") + "</span></div>";
         };
-        h += '<div class="cp-match">' + fila(p.local, p.gl, p.pl, gan === 1) + fila(p.visitante, p.gv, p.pv, gan === 2) + "</div>";
+        const cuerpo = fila(p.local, p.gl, p.pl, gan === 1) + fila(p.visitante, p.gv, p.pv, gan === 2);
+        h += p.jornada && p.localClave && p.visitanteClave
+          ? '<a class="cp-match cp-link" href="#/partido/copa/' + p.jornada + "/" + capHash(p.localClave + "|" + p.visitanteClave) + '">' + cuerpo + "</a>"
+          : '<div class="cp-match">' + cuerpo + "</div>";
       });
       h += "</div></details>";
     });
