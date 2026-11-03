@@ -2,7 +2,7 @@
   "use strict";
 
   const app = document.getElementById("app");
-  const tabs = document.querySelectorAll("#tabs a");
+  let tabs = document.querySelectorAll("#tabs a");
   let DATA = null;
 
   // ---------- utilidades ----------
@@ -642,7 +642,7 @@
     const div = partes[1] || DATA.divisiones[0].id;
     tabs.forEach(function (a) { a.classList.toggle("on", a.dataset.tab === (tab === "partido" ? "partidos" : tab)); });
     tabs.forEach(function (a) {
-      if (a.dataset.tab !== "bajas" && a.dataset.tab !== "reglas" && a.dataset.tab !== "palmares") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
+      if (a.dataset.tab !== "bajas" && a.dataset.tab !== "reglas" && a.dataset.tab !== "palmares" && a.dataset.tab !== "copa") a.setAttribute("href", "#/" + a.dataset.tab + "/" + (tab !== "bajas" ? div : DATA.divisiones[0].id));
     });
     let html;
     if (tab === "partido") html = vistaPartido(div, partes[2], partes[3]);
@@ -650,6 +650,7 @@
     else if (tab === "plantillas") html = vistaPlantillas(div, partes[2]);
     else if (tab === "reglas") html = vistaReglas();
     else if (tab === "palmares") html = vistaPalmares();
+    else if (tab === "copa" && DATA.copa) html = vistaCopa();
     else if (tab === "bajas") html = vistaBajas(partes[1] !== "todas");
     else html = vistaClasificacion(div);
     app.innerHTML = html;
@@ -666,12 +667,49 @@
     activarBusquedaReglas();
   }
 
+  // ---------- copa (vista previa privada) ----------
+  function claveCopa() {
+    try {
+      const q = new URLSearchParams(location.search).get("copa");
+      if (q) localStorage.setItem("propelife_copa", q);
+      return q || localStorage.getItem("propelife_copa") || "";
+    } catch (e) { return ""; }
+  }
+  function vistaCopa() {
+    const C = DATA.copa;
+    let h = "<h1>Copa Panagiotis</h1>" + '<p class="sub">Vista previa · solo visible con tu enlace privado</p>';
+    if (!C || !C.rondas || !C.rondas.length) return h + '<p class="empty">Aún no hay cruces en el cuadro.</p>';
+    C.rondas.forEach(function (ron) {
+      h += '<details class="rsec" open><summary><span>🏅</span><span>' + esc(ron.nombre) + '</span></summary><div class="rbody">';
+      ron.partidos.forEach(function (p) {
+        const jug = p.gl !== null && p.gv !== null;
+        let gan = 0;
+        if (jug) { gan = p.gl > p.gv ? 1 : p.gl < p.gv ? 2 : (p.pl !== null && p.pv !== null ? (p.pl > p.pv ? 1 : p.pl < p.pv ? 2 : 0) : 0); }
+        const fila = function (nom, g, pen, w) {
+          return '<div class="cp-eq' + (w ? " gana" : "") + '"><span class="cp-n">' + (nom ? esc(nom) : "—") + '</span><span class="cp-g">' + (g === null ? "" : g) + (pen !== null ? ' <small>(' + pen + ")</small>" : "") + "</span></div>";
+        };
+        h += '<div class="cp-match">' + fila(p.local, p.gl, p.pl, gan === 1) + fila(p.visitante, p.gv, p.pv, gan === 2) + "</div>";
+      });
+      h += "</div></details>";
+    });
+    return h;
+  }
+  function pestanaCopa() {
+    const nav = document.getElementById("tabs");
+    if (!nav || document.querySelector('#tabs a[data-tab="copa"]')) return;
+    const a = document.createElement("a");
+    a.href = "#/copa"; a.dataset.tab = "copa"; a.title = "Copa"; a.setAttribute("aria-label", "Copa");
+    a.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></svg>';
+    nav.appendChild(a);
+    tabs = document.querySelectorAll("#tabs a");
+  }
+
   // ---------- datos ----------
   async function cargar() {
     const cfg = window.LIGA_CONFIG || {};
     if (cfg.API_URL) {
       try {
-        const r = await fetch(cfg.API_URL + (cfg.API_URL.indexOf("?") === -1 ? "?" : "&") + "api=liga");
+        const r = await fetch(cfg.API_URL + (cfg.API_URL.indexOf("?") === -1 ? "?" : "&") + "api=liga" + (claveCopa() ? "&copa=" + encodeURIComponent(claveCopa()) : ""));
         if (r.ok) {
           const j = await r.json();
           if (j && j.divisiones) return j;
@@ -686,6 +724,7 @@
   window.addEventListener("hashchange", render);
   cargar().then(function (d) {
     DATA = d;
+    if (d.copa) pestanaCopa();
     const f = d.actualizado ? new Date(d.actualizado) : null;
     document.getElementById("actualizado").textContent = f && !isNaN(f)
       ? "Actualizado: " + f.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" }) : "";

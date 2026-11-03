@@ -239,3 +239,11 @@ button.cap-btn{background:none;cursor:pointer;font-family:inherit}
 .sub-mas{background:none;border:0;color:var(--acc,#d4a63a);font-size:13px;cursor:pointer;padding:2px 0}
 .mp-aviso{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4);border-radius:8px;padding:8px 10px;font-size:13px}
 .mp-quien{font-size:12px;color:var(--mut);margin-bottom:6px}
+
+/* Copa */
+.cp-match{background:var(--card2);border:1px solid var(--line);border-radius:10px;margin:8px 0;overflow:hidden}
+.cp-eq{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;font-size:15px}
+.cp-eq+.cp-eq{border-top:1px solid var(--line)}
+.cp-eq.gana{font-weight:800;color:var(--acc)}
+.cp-g{font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+.cp-g small{color:var(--mut)}
