@@ -117,6 +117,18 @@
     }).join("") + "</div>";
   }
 
+  function notaAjuste(p) {
+    const a = p && p.ajuste;
+    if (!a) return "";
+    return '<div class="ajnota">&#9888; Alineación indebida de <b>' + esc(a.infractor) + "</b>" + (a.jugador ? " (" + esc(a.jugador) + ")" : "") +
+      ": el partido se jugó " + esc(a.jugado || "-") + ", pero en la clasificación cuenta " + esc(a.aplicado) +
+      (a.puntos ? " y " + a.puntos + " puntos" : "") + ".</div>";
+  }
+  function leyendaAjustes(div) {
+    return div.partidos.filter(function (p) { return p.ajuste; }).map(function (p) {
+      return notaAjuste(p).replace('class="ajnota"', 'class="ajnota"') ;
+    }).join("");
+  }
   function vistaClasificacion(divId) {
     const div = divisionPorId(divId);
     let h = "<h1>Clasificación</h1>" +
@@ -133,9 +145,9 @@
         '</td><td>' + (e.pe == null ? "-" : e.pe) + '</td><td>' + (e.pp == null ? "-" : e.pp) +
         "</td><td>" + (e.gf == null ? "-" : e.gf) + "</td><td>" + (e.gc == null ? "-" : e.gc) +
         '</td><td class="dif ' + (dg > 0 ? "p" : dg < 0 ? "n" : "") + '">' + (dg > 0 ? "+" : "") + dg +
-        '</td><td class="pts">' + (e.pts == null ? 0 : e.pts) + "</td></tr>";
+        '</td><td class="pts">' + (e.pts == null ? 0 : e.pts) + (e.ajuste ? ' <sup class="ajs" title="Ajuste por alineación indebida">' + e.ajuste + "</sup>" : "") + "</td></tr>";
     });
-    return h + "</tbody></table></div>" + leyendaZonas(div);
+    return h + "</tbody></table></div>" + leyendaZonas(div) + leyendaAjustes(div);
   }
 
   // Incidencias de un equipo en la jornada j (a partir de las columnas TR, SANC y LES).
@@ -471,6 +483,7 @@
       '<div class="card"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
       (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
       '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div></div></div>";
+    h += notaAjuste(p);
     h += bannerFecha(jornada);
     function col(nombre, lista) {
       return "<div><b>" + esc(nombre) + '</b><div class="chips">' + (lista || '<span class="empty">Ninguno</span>') + "</div></div>";
@@ -510,7 +523,7 @@
       return '<div class="mwrap' + (insigniaCaptura(p) ? ' hecho' : '') + '"><a class="mlink" href="' + enlacePartido(div, p) + '"><div class="match"><div class="t r"><span>' + esc(loc) + "</span>" + crest(loc, p.localClave) + "</div>" +
         (p.jugado ? '<div class="score">' + p.golesLocal + " - " + p.golesVisitante + "</div>" : '<div class="score pend">vs</div>') +
         '<div class="t">' + crest(vis, p.visitanteClave) + "<span>" + esc(vis) + "</span></div>" + "</div></a>" +
-        (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + "</div>";
+        (ci || vi ? '<div class="incs"><div class="r">' + ci + "</div><div></div><div>" + vi + "</div></div>" : "") + notaAjuste(p) + "</div>";
     }).join("") + "</div>" +
       '<div class="legend"><span>&#128997; Expulsado</span><span>&#128721; Sancionado</span><span>&#129657; Lesionado</span></div>';
     return h;
